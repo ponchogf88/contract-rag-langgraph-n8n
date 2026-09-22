@@ -1,0 +1,14 @@
+{
+  "name": "Contract intake RAG (compliance-first)",
+  "nodes": [
+    {"parameters": {"httpMethod": "POST", "path": "contract-intake", "responseMode": "responseNode"}, "id": "webhook", "name": "Webhook", "type": "n8n-nodes-base.webhook", "typeVersion": 2, "position": [0, 0]},
+    {"parameters": {"method": "POST", "url": "http://localhost:8000/ask", "sendBody": true, "specifyBody": "json", "jsonBody": "={{ { filename: $json.filename, text: $json.text, query: $json.query || 'Resume obligaciones, ley aplicable y transferencias de datos.' } }}"}, "id": "ask", "name": "Call Contract RAG", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4, "position": [260, 0]},
+    {"parameters": {"rules": {"values": [{"outputKey": "DPA", "conditions": {"string": [{"value1": "={{ $json.classification.doc_type }}", "value2": "DPA"}]}}, {"outputKey": "NDA", "conditions": {"string": [{"value1": "={{ $json.classification.doc_type }}", "value2": "NDA"}]}}, {"outputKey": "MSA", "conditions": {"string": [{"value1": "={{ $json.classification.doc_type }}", "value2": "MSA"}]}}]}}, "id": "switch", "name": "Route by doc type", "type": "n8n-nodes-base.switch", "typeVersion": 3, "position": [520, 0]},
+    {"parameters": {"respondWith": "json", "responseBody": "={{ { ok: true, doc_type: $json.classification.doc_type, risk_flags: $json.classification.risk_flags, answer: $json.answer, citations: $json.citations, residual_risk: $json.residual_risk } }}"}, "id": "respond", "name": "Respond", "type": "n8n-nodes-base.respondToWebhook", "typeVersion": 1, "position": [780, 0]}
+  ],
+  "connections": {
+    "Webhook": {"main": [[{"node": "Call Contract RAG", "type": "main", "index": 0}]]},
+    "Call Contract RAG": {"main": [[{"node": "Route by doc type", "type": "main", "index": 0}]]},
+    "Route by doc type": {"main": [[{"node": "Respond", "type": "main", "index": 0}], [{"node": "Respond", "type": "main", "index": 0}], [{"node": "Respond", "type": "main", "index": 0}]]}
+  }
+}
